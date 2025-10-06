@@ -1,0 +1,9 @@
+# config.yaml
+server:
+  image:
+    repository: hashicorp/vault-enterprise
+    tag: 1.20.4-ent
+  enterpriseLicense:
+    secretName: vault-ent-license
+  dataStorage:
+    storageClass: gp2
