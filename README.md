@@ -64,7 +64,17 @@ For production environments, consider one of these approaches:
 
 ## 11. Git Hooks for Security and Commit Standards
 
-This repository includes Git hooks to maintain code quality and security:
+This repository includes Git hooks to maintain code quality and security. The hooks are stored in `.githooks/` and must be installed locally.
+
+### Quick Setup
+
+Run the setup script to install the hooks:
+
+```bash
+./setup-hooks.sh
+```
+
+This will copy the hooks from `.githooks/` to `.git/hooks/` and make them executable.
 
 ### Pre-Commit Hook (Security)
 
@@ -110,13 +120,14 @@ git commit -m "docs: update README with deployment steps"
 git commit -m "chore: enable security pre-commit hooks"
 ```
 
-### Setup Hooks (Already Configured)
+### Manual Setup (Alternative)
 
-The hooks are already in `.git/hooks/` and executable. If you need to reinstall them:
+If you prefer to install hooks manually:
 
 ```bash
-chmod +x .git/hooks/pre-commit
-chmod +x .git/hooks/commit-msg
+cp .githooks/pre-commit .git/hooks/pre-commit
+cp .githooks/commit-msg .git/hooks/commit-msg
+chmod +x .git/hooks/pre-commit .git/hooks/commit-msg
 ```
 
 ### Bypassing Hooks (Not Recommended)
