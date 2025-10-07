@@ -74,5 +74,5 @@ if echo "$SUBJECT" | grep -qE ": (adds|added|adding|fixes|fixed|fixing|updates|u
     echo -e "${YELLOW}Warning: Use imperative mood in subject line (e.g., 'add' not 'added', 'fix' not 'fixed')${NC}"
 fi
 
-echo "✓ Commit message format is valid"
+echo "Commit message format is valid"
 exit 0
