@@ -1,8 +1,129 @@
 # Vault Enterprise on EKS
 
-This guide captures the steps for deploying HashiCorp Vault Enterprise with integrated Raft storage on an Amazon EKS cluster using the Helm values in `config.yml` and `helm-vault-raft-values.yml`.
+A robust, enterprise-ready infrastructure repository for quickly deploying HashiCorp Vault Enterprise with integrated Raft storage on Amazon EKS.
+
+## Quick Start
+
+### Automated Deployment
+
+The fastest way to get Vault Enterprise running:
+
+```bash
+# 1. Ensure you have a Vault Enterprise license file
+cp your-license.hclic vault.hclic
+
+# 2. Install Git hooks (optional but recommended)
+./scripts/setup-hooks.sh
+
+# 3. Run the automated deployment script
+./scripts/deploy-vault.sh
+```
+
+This script will:
+- Check prerequisites (kubectl, helm, aws CLI)
+- Add Hashicorp Helm repository
+- Create namespace and license secret
+- Deploy 3-node HA Vault cluster
+- Initialize Vault with 5 unseal keys (threshold: 3)
+- Unseal all nodes automatically
+- Join nodes to Raft cluster
+- Enable audit logging to stdout
+- Verify cluster health
+
+**Save your unseal keys and root token securely!** They will be in `vault-init.json`.
+
+### Optional: CloudWatch Audit Logging
+
+After deployment, set up centralized audit logging:
+
+```bash
+./scripts/setup-cloudwatch-logging.sh
+```
+
+### Teardown
+
+To completely remove Vault and all data:
+
+```bash
+./scripts/teardown-vault.sh
+```
+
+**Warning:** This deletes all Vault data permanently!
+
+## Repository Structure
+
+```
+vault-eks/
+├── scripts/                      # Automation scripts
+│   ├── deploy-vault.sh          # Automated deployment
+│   ├── teardown-vault.sh        # Automated cleanup
+│   ├── setup-cloudwatch-logging.sh # CloudWatch setup
+│   ├── setup-hooks.sh           # Git hooks installer
+│   └── README.md                # Scripts documentation
+├── config/                       # Configuration files
+│   ├── config.yml               # Vault Helm values
+│   ├── helm-vault-raft-values.yml # Raft HA config
+│   ├── cloudwatch/              # CloudWatch configs
+│   │   └── cloudwatch-policy.json
+│   ├── fluent-bit/              # Fluent Bit configs
+│   │   ├── fluent-bit-config.yaml
+│   │   └── fluent-bit-daemonset.yaml
+│   └── README.md                # Config documentation
+├── docs/                         # Documentation
+│   └── cloudwatch-insights-queries.md
+├── examples/                     # Example configurations
+│   └── README.md
+├── .githooks/                    # Git hooks
+│   ├── pre-commit               # Security checks
+│   └── commit-msg               # Commit format
+├── .gitignore
+└── README.md
+```
 
 ## Prerequisites
+
+### Required Tools
+
+- `kubectl` - Kubernetes CLI
+- `helm` - Kubernetes package manager (v3+)
+- `aws` - AWS CLI (configured with credentials)
+- `jq` - JSON processor (for automated deployment)
+- Valid Vault Enterprise license file
+
+### EKS Cluster Requirements
+
+- Running EKS cluster with nodes
+- StorageClass configured (e.g., `gp2` for AWS EBS)
+- OIDC provider enabled (for CloudWatch logging with IRSA)
+- Sufficient resources (recommended: 3 nodes, 2 CPU / 4GB RAM per node)
+
+## What Gets Deployed
+
+The automated deployment creates:
+
+1. **Vault Cluster**
+   - 3 StatefulSet pods (vault-0, vault-1, vault-2)
+   - Integrated Raft storage for HA
+   - Enterprise license activated
+   - UI enabled
+
+2. **Storage**
+   - 3 Persistent Volume Claims (10GB each)
+   - EBS volumes via gp2 StorageClass
+
+3. **Networking**
+   - ClusterIP service: `vault` (8200, 8201)
+   - Headless service: `vault-internal` (for Raft)
+   - Vault Agent Injector for sidecar injection
+
+4. **Security**
+   - TLS disabled by default (enable for production!)
+   - Audit logging to stdout
+   - Optional CloudWatch integration
+
+## Manual Deployment (Advanced)
+
+If you prefer manual control over the deployment process:
 
 ### Enable the UI
 
@@ -71,7 +192,7 @@ This repository includes Git hooks to maintain code quality and security. The ho
 Run the setup script to install the hooks:
 
 ```bash
-./setup-hooks.sh
+./scripts/setup-hooks.sh
 ```
 
 This will copy the hooks from `.githooks/` to `.git/hooks/` and make them executable.
@@ -217,7 +338,7 @@ Vault audit logs are crucial for security compliance and troubleshooting. This s
 
 2. **Run the automated setup:**
    ```bash
-   ./setup-cloudwatch-logging.sh
+   ./scripts/setup-cloudwatch-logging.sh
    ```
 
    The script will:

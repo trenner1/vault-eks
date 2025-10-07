@@ -1,6 +1,7 @@
 # Secrets and license files
 secrets.txt
 *.hclic
+vault-init.json
 
 # Temporary files
 trust-policy.json

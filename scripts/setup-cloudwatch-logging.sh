@@ -39,7 +39,7 @@ echo -e "${YELLOW}Creating IAM policy: ${POLICY_NAME}${NC}"
 
 POLICY_ARN=$(aws iam create-policy \
     --policy-name $POLICY_NAME \
-    --policy-document file://cloudwatch-policy.json \
+    --policy-document file://config/cloudwatch/cloudwatch-policy.json \
     --query 'Policy.Arn' \
     --output text 2>/dev/null || aws iam list-policies --query "Policies[?PolicyName=='${POLICY_NAME}'].Arn" --output text)
 
@@ -87,11 +87,11 @@ aws iam attach-role-policy \
 
 # Update Fluent Bit manifests with actual values
 echo -e "${YELLOW}Updating Fluent Bit manifests${NC}"
-sed "s|\${FLUENT_BIT_IAM_ROLE_ARN}|${ROLE_ARN}|g" fluent-bit-daemonset.yaml > fluent-bit-daemonset-temp.yaml
+sed "s|\${FLUENT_BIT_IAM_ROLE_ARN}|${ROLE_ARN}|g" config/fluent-bit/fluent-bit-daemonset.yaml > fluent-bit-daemonset-temp.yaml
 sed -i.bak "s|\${AWS_REGION}|${AWS_REGION}|g" fluent-bit-daemonset-temp.yaml
 rm -f fluent-bit-daemonset-temp.yaml.bak
 
-sed "s|\${AWS_REGION}|${AWS_REGION}|g" fluent-bit-config.yaml > fluent-bit-config-temp.yaml
+sed "s|\${AWS_REGION}|${AWS_REGION}|g" config/fluent-bit/fluent-bit-config.yaml > fluent-bit-config-temp.yaml
 
 # Apply Kubernetes resources
 echo -e "${YELLOW}Applying Fluent Bit configuration${NC}"
