@@ -1,13 +1,16 @@
-# Vault secrets and license files
+# Secrets and license files
 secrets.txt
 *.hclic
-vault.hclic
 
-# Terraform state files
+# Temporary files
+trust-policy.json
+fluent-bit-*-temp.yaml
+
+# Terraform files
 *.tfstate
-*.tfstate.*
+*.tfstate.backup
 .terraform/
-.terraform.lock.hcl
+*.tfvars
 
 # Kubernetes secrets
 *-secret.yaml

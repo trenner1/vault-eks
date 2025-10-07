@@ -197,3 +197,101 @@ If `vault read sys/health` shows `"enterprise": false`:
 - Check events: `kubectl -n vault get events --sort-by=.lastTimestamp | tail -n 20`
 - Confirm PVCs are bound: `kubectl -n vault get pvc`
 
+## 10. CloudWatch Audit Logging
+
+Vault audit logs are crucial for security compliance and troubleshooting. This setup streams audit logs to AWS CloudWatch Logs using Fluent Bit, which handles leader election seamlessly.
+
+### Why CloudWatch?
+
+- **Leader Election Safe**: Logs from all pods (including after leader changes) are centralized
+- **Persistent**: Logs survive pod restarts and cluster upgrades
+- **Searchable**: Use CloudWatch Insights to query audit events
+- **Compliance**: Meet audit retention requirements
+
+### Setup Steps
+
+1. **Prerequisites:**
+   - EKS cluster with OIDC provider enabled
+   - AWS CLI configured with appropriate permissions
+   - kubectl access to your cluster
+
+2. **Run the automated setup:**
+   ```bash
+   ./setup-cloudwatch-logging.sh
+   ```
+
+   The script will:
+   - Create IAM policy for CloudWatch Logs access
+   - Create IAM role with IRSA (IAM Roles for Service Accounts)
+   - Deploy Fluent Bit DaemonSet to collect logs
+   - Enable Vault audit device to stdout
+   - Configure log streaming to CloudWatch
+
+3. **Verify the setup:**
+   ```bash
+   # Check Fluent Bit pods
+   kubectl -n vault get pods -l app=fluent-bit
+   
+   # Check Vault audit device
+   kubectl -n vault exec -it vault-0 -- sh -c 'VAULT_TOKEN=<root-token> vault audit list'
+   
+   # Tail CloudWatch logs
+   aws logs tail /aws/eks/vault/audit --follow
+   ```
+
+### Viewing Audit Logs
+
+**Via AWS Console:**
+1. Navigate to CloudWatch → Log groups
+2. Find `/aws/eks/vault/audit`
+3. Use CloudWatch Insights to query logs
+
+**Via AWS CLI:**
+```bash
+# Tail logs in real-time
+aws logs tail /aws/eks/vault/audit --follow
+
+# Query recent logs
+aws logs tail /aws/eks/vault/audit --since 1h
+
+# Search for specific events
+aws logs filter-log-events \
+  --log-group-name /aws/eks/vault/audit \
+  --filter-pattern "type=request" \
+  --start-time $(date -u -d '1 hour ago' +%s)000
+```
+
+**Example CloudWatch Insights Query:**
+```sql
+fields @timestamp, request.path, request.operation, auth.display_name
+| filter type = "request"
+| sort @timestamp desc
+| limit 100
+```
+
+### Manual Setup (Alternative)
+
+If you prefer manual setup or need to customize:
+
+1. Create IAM policy from `cloudwatch-policy.json`
+2. Create IAM role with IRSA trust relationship
+3. Update `fluent-bit-daemonset.yaml` with your role ARN
+4. Apply manifests:
+   ```bash
+   kubectl apply -f fluent-bit-config.yaml
+   kubectl apply -f fluent-bit-daemonset.yaml
+   ```
+5. Enable audit device:
+   ```bash
+   kubectl -n vault exec -it vault-0 -- \
+     sh -c 'VAULT_TOKEN=<root-token> vault audit enable file file_path=stdout'
+   ```
+
+### Troubleshooting
+
+- **No logs appearing**: Check Fluent Bit pods with `kubectl -n vault logs -l app=fluent-bit`
+- **Permission denied**: Verify IAM role has CloudWatch permissions and trust policy is correct
+- **High costs**: Adjust log retention in CloudWatch (default is indefinite)
+
+## 11. Git Hooks Setup
+
